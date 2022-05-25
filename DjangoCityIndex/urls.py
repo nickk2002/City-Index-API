@@ -19,5 +19,7 @@ from api import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path("api/<str:matrix_code>",views.home_view,name='home'),
+    path("api/<str:matrix_code>/all", views.get_all, name='get_all'),
+    path("api/<str:matrix_code>/<str:localitate>", views.get_location, name='get_localitate'),
+
 ]
