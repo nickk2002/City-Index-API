@@ -4,6 +4,10 @@ import re
 import requests
 
 
+class LocalitateNotFound(Exception):
+    pass
+
+
 def search_in_json(content: dict, localitate: str):
     output_data = []
     dimensions_map = content['dimensionsMap']
@@ -19,6 +23,8 @@ def search_in_json(content: dict, localitate: str):
                 parent_id_judet = option['parentId']
                 print("ParentID", parent_id_judet)
                 break
+    if parent_id_judet == -1:
+        raise LocalitateNotFound("Could not find localitate " + localitate)
     other_fields = 0
     ani = []
     for attribute in dimensions_map:
@@ -97,4 +103,3 @@ def run_matrix(cod_matrice: str):
 if __name__ == '__main__':
     matrix_name = "FOM104D"
     print(run_matrix(matrix_name))
-
