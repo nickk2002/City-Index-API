@@ -11,7 +11,7 @@ def trains(request):
     else:
         return HttpResponse(
             "<h1>Sa pui city ca parametru</h1>"
-            "https://cfr-scraper.herokuapp.com/?city=Bucuresti-Nord&date=15.06.2022 sau https://cfr-scraper.herokuapp.com/?city=Bucuresti-Nord pentru date=now")
+            "https://city-index-api.herokuapp.com/?city=Bucuresti-Nord&date=15.06.2022 sau https://city-index-api.herokuapp.com/?city=Bucuresti-Nord pentru date=now")
     if "date" in request.GET:
         date_to_search = request.GET["date"]
     else:

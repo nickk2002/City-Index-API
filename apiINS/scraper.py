@@ -93,7 +93,7 @@ def get_information_localitate(cod_matrice: str, localitate: str):
 
 def run_matrix(cod_matrice: str):
     json_data = []
-    with open("testData/localitati.txt") as f:
+    with open("apiINS/testData/localitati.txt") as f:
         for line in f.readlines():
             localitate = line.strip()
             print(localitate)
