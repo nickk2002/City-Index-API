@@ -1,3 +1,4 @@
+import csv
 import json
 import re
 
@@ -92,14 +93,24 @@ def get_information_localitate(cod_matrice: str, localitate: str):
 
 def run_matrix(cod_matrice: str):
     json_data = []
-    with open("localitati.txt") as f:
+    with open("testData/localitati.txt") as f:
         for line in f.readlines():
             localitate = line.strip()
+            print(localitate)
             data = get_information_localitate(cod_matrice, localitate)
             json_data.append(data)
     return json_data
 
 
+def get_all_matrices():
+    response = requests.get("http://statistici.insse.ro:8077/tempo-ins/matrix/matrices")
+    data = response.json()
+    with open('output/all_matrices.csv', mode='w', encoding="UTF-8", newline='') as f:
+        rows = [[matrix_data['name'], matrix_data['code']] for matrix_data in data]
+        print(len(rows))
+        employee_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        employee_writer.writerows(rows)
+
+
 if __name__ == '__main__':
-    matrix_name = "FOM104D"
-    print(run_matrix(matrix_name))
+    get_all_matrices()
