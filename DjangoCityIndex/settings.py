@@ -14,16 +14,17 @@ from pathlib import Path
 
 import environ
 
-print(os.environ.keys())
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-environ.Env.read_env(env_file=os.path.join(BASE_DIR, '.env'))
+try:
+    environ.Env.read_env(env_file=os.path.join(BASE_DIR, '.env'))
+except Exception:
+    pass
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.0/howto/deployment/checklist/
 
-print(os.environ)
 SECRET_KEY = os.environ['SECRET_KEY']
 
 # SECURITY WARNING: don't run with debug turned on in production!
