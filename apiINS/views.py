@@ -1,52 +1,35 @@
 import csv
 import json
+from typing import List, Tuple
 
 from django.http import HttpResponse
 
-from apiINS.scraper import run_matrix, get_information_localitate, LocalitateNotFound
+from apiINS.scraper import get_information_localitate
 
 
-def get_all(request, matrix_code):
-    data = run_matrix(matrix_code)
+def parse_query_string(query_string: str) -> List[Tuple[str, List[str]]]:
+    # 1=>ABC,BCA,CDA;2-BAC,sKASDj
+    data = []
+    for column in query_string.split(";"):
+        split = column.split(":")
+        if len(split) > 1:
+            data.append((split[0], split[1].split(",")))
+    return data
 
-    return HttpResponse(json.dumps(data), content_type="application/json")
 
+def get_location_json(request, matrix_code):
+    if "query" in request.GET:
+        query = request.GET['query']
+        list_data = parse_query_string(query)
+        print(list_data)
+        data = get_information_localitate(matrix_code, list_data)
 
-def get_location_json(request, matrix_code, localitate):
-    try:
-        data = get_information_localitate(matrix_code, localitate)
-    except LocalitateNotFound:
-        return HttpResponse("Nu am gasit localitatea " + localitate)
-    return HttpResponse(json.dumps(data), content_type="application/json")
+        return HttpResponse(json.dumps(data), content_type="application/json")
+    else:
+        return HttpResponse("<h1> No query :( ")
 
 
 def get_all_matrices(request):
     pass
 
 
-def get_location_csv(request, matrix_code, localitate):
-    try:
-        json_data = get_information_localitate(matrix_code, localitate)
-    except LocalitateNotFound:
-        return HttpResponse("Nu am gasit localitatea " + localitate)
-    response = HttpResponse(
-        "Downloaded the file",
-        content_type='text/csv',
-        headers={'Content-Disposition': 'attachment; filename="tabel.csv"'},
-    )
-    writer = csv.writer(response)
-    first_row = ["Cnt", "matrixName", "martixCode", "localitate", "indicator"]
-    nume_ani = []
-
-    for key in json_data.keys():
-        print(key)
-        if key.startswith("Anul"):
-            first_row.append(key)
-            nume_ani.append(key)
-
-    writer.writerow(first_row)
-    second_row = [1, json_data['matrixName'], json_data["matrixCode"], json_data["localitate"], json_data["indicator"]]
-    for ani in nume_ani:
-        second_row.append(json_data[ani])
-    writer.writerow(second_row)
-    return response

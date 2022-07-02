@@ -1,66 +1,61 @@
-import csv
 import json
 import re
+from pprint import pprint
+from typing import List, Tuple
 
 import requests
 
-
-class LocalitateNotFound(Exception):
-    pass
+from apiINS.exceptions import CouldNotFindValue, CouldNotFindFieldLabel
 
 
-def search_in_json(content: dict, localitate: str):
-    output_data = []
+def search_in_json(content: dict, query_list: List[Tuple[str, List[str]]]):
+    post_data = []  # array of options selected
+    ani = []
+    found_labels = {}  # Alba Iulia -> Judete, Masculin -> Sexe
+
     dimensions_map = content['dimensionsMap']
-    parent_id_judet = -1
-
+    print("Data to filter for", query_list)
+    index_query_list = 0
     # find the parent_id for judet
     for attribute in dimensions_map:
-        if parent_id_judet != -1:
-            break
+        field_label: str = attribute['label'].strip()
         options = attribute['options']
-        for option in options:
-            if option['label'] == localitate:
-                parent_id_judet = option['parentId']
-                print("ParentID", parent_id_judet)
-                break
-    if parent_id_judet == -1:
-        raise LocalitateNotFound("Could not find localitate " + localitate)
-    other_fields = 0
-    ani = []
-    for attribute in dimensions_map:
-        label = attribute['label']
-        options = attribute['options']
-        found = None
-        if label == "Ani":
-            output_data.append(options)
+        if field_label == "Ani":
+            post_data.append(options)
             for option in options:
                 ani.append(option['label'])
-            continue
-        else:
-            other_fields += 1
-        for option in options:
-            if found:
-                break
-            if option['label'] == localitate:
-                found = option
-                print("Found", found)
-            if option['nomItemId'] == parent_id_judet and not option['parentId']:
-                found = option
-                print("Found", found)
-        if not found:
-            output_data.append([attribute['options'][0]])
-        else:
-            output_data.append([found])
-    return ani, output_data
+        elif index_query_list < len(query_list) and field_label == query_list[index_query_list][0]:
+            labels_to_search = list.copy(query_list[index_query_list][1])
+            options_selected = []
+            for option in options:
+                option_label = option['label'].strip()  # remove the whitespace from the label
+                if option_label in labels_to_search:
+                    options_selected.append(option)
+                    found_labels[option_label] = field_label  # certain value => main label
+                    labels_to_search.remove(option_label)
+            if labels_to_search:  # daca nu am gasit toate lucrurile scrise in lista
+                raise CouldNotFindValue(field_label, labels_to_search)
+            post_data.append(options_selected)
+            index_query_list += 1
+        else:  # iau total
+            post_data.append([options[0]])
+    if index_query_list < len(query_list):  # daca nu am gasit toate label-urile initiale
+        raise CouldNotFindFieldLabel(query_list[index_query_list][0])
+    return ani, found_labels, post_data
 
 
-def get_information_localitate(cod_matrice: str, localitate: str):
+def get_information_localitate(cod_matrice: str, query_list: List[Tuple[str, List[str]]]):
     url = f"http://statistici.insse.ro:8077/tempo-ins/matrix/{cod_matrice}"
     content = json.loads(requests.get(url).content)
-    ani, param_data = search_in_json(content, localitate)
-    post_data = {
-        "arr": param_data,
+
+    try:
+        ani, found_labels, post_data = search_in_json(content, query_list)
+    except Exception as e:
+        return {"error": e.__str__()}
+
+    print("Param data", post_data)
+    post_payload = {
+        "arr": post_data,
         "language": "ro",
         "matrixName": content["matrixName"],
         "matrixDetails": content["details"]
@@ -69,48 +64,38 @@ def get_information_localitate(cod_matrice: str, localitate: str):
         "Content-Type": "application/json;charset=UTF-8",
     }
     response = requests.post(f"http://statistici.insse.ro:8077/tempo-ins/matrix/dataSet/{cod_matrice}",
-                             data=json.dumps(post_data), headers=headers)
+                             data=json.dumps(post_payload), headers=headers)
     response_content = json.loads(response.content)
-    indicator = param_data[-1][0]['label']
 
-    output = {
-        "matrixName": content["matrixName"],
-        "matrixCode": cod_matrice,
-        "localitate": localitate,
-        "indicator": indicator
-    }
+    indicator = post_data[-1][0]['label']
 
-    index = 0
-    last_entry = response_content[-1]
-    other_fields = len(last_entry) - len(ani)
-    for number in last_entry[other_fields:]:
-        digits = re.findall("\d+", number)
-        if digits:
-            output[ani[index]] = digits[0]
-            index += 1
-    return output
+    pprint(f"Json response {response_content}")
+    # trebuie sa iau cati indicatori iau de la final
+    # produsul lungimii fiecarui parametru selectat (2 * 3 * 2)
+    nr_selected_elements = 1
+    for element in query_list:
+        nr_selected_elements *= len(element[1])
+    print(nr_selected_elements)
 
+    json_output = []
+    for arr_entry in response_content[len(response_content) - nr_selected_elements:]:
+        output = {
+            "matrixName": content["matrixName"],
+            "matrixCode": cod_matrice,
+            "indicator": indicator
+        }
+        other_fields = len(arr_entry) - len(ani)
+        # pun label-urile selectate in output-ul json
+        for label in arr_entry[:other_fields]:
+            label = label.strip()
+            if label in found_labels:
+                output[found_labels[label]] = label
 
-def run_matrix(cod_matrice: str):
-    json_data = []
-    with open("apiINS/testData/localitati.txt") as f:
-        for line in f.readlines():
-            localitate = line.strip()
-            print(localitate)
-            data = get_information_localitate(cod_matrice, localitate)
-            json_data.append(data)
-    return json_data
-
-
-def get_all_matrices():
-    response = requests.get("http://statistici.insse.ro:8077/tempo-ins/matrix/matrices")
-    data = response.json()
-    with open('output/all_matrices.csv', mode='w', encoding="UTF-8", newline='') as f:
-        rows = [[matrix_data['name'], matrix_data['code']] for matrix_data in data]
-        print(len(rows))
-        employee_writer = csv.writer(f, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        employee_writer.writerows(rows)
-
-
-if __name__ == '__main__':
-    get_all_matrices()
+        ani_index = 0
+        for number in arr_entry[other_fields:]:
+            digits = re.findall(r"\d+", number)
+            if digits:
+                output[ani[ani_index]] = digits[0]
+                ani_index += 1
+        json_output.append(output)
+    return json_output

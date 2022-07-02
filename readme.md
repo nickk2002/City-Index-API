@@ -1,11 +1,7 @@
-##INS
+## INS
 
-`https://city-index-api.herokuapp.com/api/ins/json/<matrix_name>/<localitate>`
+`https://city-index-api.herokuapp.com/api/ins/json/<matrix_name>/?query=Localitati:<option1>,<option2>;Judete:<option1>,<option2>,<option3>`Ad
 
-| Url                                                                                        | Description                                                                                                |
-|--------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------|
-| https://city-index-api.herokuapp.com/api/ins/json/POP308A/1017%20MUNICIPIUL%20ALBA%20IULIA | Ia indicatorul pentru aceasta matrice si localitate                                                        |
-| https://city-index-api.herokuapp.com/api/ins/json/POP308A/all                              | Toate localitatile si le afizeaza. Nu o sa functioneze pentru ca ia mai mult de 30 de secunde requestul-ul |
 
 
 ## CFR
