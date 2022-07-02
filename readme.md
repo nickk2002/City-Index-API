@@ -2,6 +2,8 @@
 
 `https://city-index-api.herokuapp.com/api/ins/json/<matrix_name>/?query=Localitati:<option1>,<option2>;Judete:<option1>,<option2>,<option3>`Ad
 
+### Exemplu 
+`https://city-index-api.herokuapp.com/api/ins/json/POP107D/?query=Sexe:Masculin,Feminin;Judete:Alba;Localitati:1017%20MUNICIPIUL%20ALBA%20IULIA,2915%20ORAS%20BAIA%20DE%20ARIES;`
 
 
 ## CFR
